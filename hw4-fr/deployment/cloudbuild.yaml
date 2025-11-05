@@ -1,0 +1,95 @@
+steps:
+  # Create a step that builds the "base" Docker image
+  # The base Docker image should be tagged with ${BUILD_ID} and `latest`.
+  - name: "gcr.io/cloud-builders/docker" # Tells Cloudbuild that this step involves Docker
+    id: "build-base-image" # Give me a unique name that describes this step
+    args:
+      # A list of arguments to provide to the `docker` command.
+      # Eg. calling `docker build --tag foo:${BUILD_ID} --tag foo:latest -f Dockerfile .` would look like
+      # args:
+      #   - build
+      #   - --tag
+      #   - foo:${BUILD_ID} # Example of a substitution
+      #   - --tag
+      #   - foo:latest
+      #   - -f
+      #   - Dockerfile.base
+      #   - .
+      [
+        "build",
+        "--tag", 
+        "${_BASE_IMAGE_URI}:${BUILD_ID}",
+        "--tag", 
+        "${_BASE_IMAGE_URI}:latest",
+        "--cache-from",
+        "${_BASE_IMAGE_URI}:latest",
+        "-f",
+        "./Dockerfile.base",
+        "."
+      ]
+  
+  # Create a step that pushes the "base" Docker image to the Artifact registry
+  # with the tag ${BUILD_ID}
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-base-image-to-registry-build-id" # Give me a unique name that describes this step.
+    waitFor: ["build-base-image"]
+    args:
+      # Here we will want to invoke the `push` command.
+      # eg. push IMAGE:TAG
+      [
+        "push",
+        "${_BASE_IMAGE_URI}:${BUILD_ID}"
+      ]
+
+  # Create a step that pushes the "base" Docker image to the Artifact registry
+  # with the tag `latest`.
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-base-image-to-registry-latest" # Give me a unique name that describes this step.
+    waitFor: ["build-base-image"]
+    args:
+      # Here we will want to invoke the `push` command.
+      # eg. push IMAGE:TAG
+      [
+        "push",
+        "${_BASE_IMAGE_URI}:latest"
+      ]
+
+  # Create a step that builds the "target" Docker image
+  # (could be frontend_v1, frontend_v2, backend_v1 or backend_v2).
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-target-image" # Give me a unique name that describes this step.
+    waitFor: ["build-base-image"]
+    args:
+      # A list of arguments to provide to the `docker` command.
+      # Tag the image ONLY with the ${BUILD_ID}
+      [
+        "build",
+        "--tag", 
+        "${_APP_URI}:${BUILD_ID}",
+        "--build-arg",
+        "BASE_IMAGE_URI=${_BASE_IMAGE_URI}:${BUILD_ID}",
+        "--build-arg",
+        "SERVING_PORT=${_SERVING_PORT}",
+        "-f",
+        "./${_TARGET_DOCKERFILE}",
+        "."
+      ]
+
+  # Create a step that pushes this Docker image to the Artifact Registry.
+  # Make sure it has a different name than the base image, frontend and/or backend.
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-target-image-build-id"
+    waitFor: ["build-target-image"]
+    args: 
+      [
+        "push",
+        "${_APP_URI}:${BUILD_ID}"
+      ]
+      
+substitutions:
+    _APP_URI: required
+    _BASE_IMAGE_URI: required
+    _SERVING_PORT: required
+    _TARGET_DOCKERFILE: required
+options:
+    substitutionOption: 'ALLOW_LOOSE'

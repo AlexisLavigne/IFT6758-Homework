@@ -1,0 +1,15 @@
+ARG BASE_IMAGE_URI
+FROM ${BASE_IMAGE_URI} AS base-image
+
+WORKDIR /code
+
+# Install codebase
+ADD ./frontend/app.py ./app.py
+
+ARG SERVING_PORT
+ENV SERVING_PORT=${SERVING_PORT}
+EXPOSE ${SERVING_PORT}
+
+# CMD jupyter-lab --port=${JUPYTER_PORT} --no-browser --ip=0.0.0.0 --allow-root
+# ENTRYPOINT ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD streamlit run app.py --server.port=${SERVING_PORT} --server.address=0.0.0.0

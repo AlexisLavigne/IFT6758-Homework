@@ -1,0 +1,13 @@
+setuptools
+streamlit
+requests
+matplotlib
+pandas
+torch
+torchvision
+pillow
+validators
+gunicorn
+flask
+flask_cors
+flask_sslify

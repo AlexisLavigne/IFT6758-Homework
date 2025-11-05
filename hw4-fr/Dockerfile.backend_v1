@@ -1,0 +1,13 @@
+ARG BASE_IMAGE_URI
+FROM ${BASE_IMAGE_URI} AS base-image
+
+WORKDIR /code
+
+# Install codebase
+ADD ./backend/app.py ./app.py
+
+ARG SERVING_PORT
+ENV SERVING_PORT=${SERVING_PORT}
+EXPOSE ${SERVING_PORT}
+
+CMD exec gunicorn --bind 0.0.0.0:${SERVING_PORT} -w 2 --threads 2 --timeout 600 app:app
