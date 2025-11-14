@@ -35,8 +35,10 @@ def encode_target_column(data) -> pd.DataFrame:
     """
     data = data.copy()
     # TODO: Utilisez LabelEncoder pour encoder la colonne cible.
+    encoder = LabelEncoder()
+    data["is_readmitted"] = encoder.fit_transform(data["is_readmitted"])
 
-    return None
+    return data
 
 def split_data(
     data: pd.DataFrame, target: str, test_size: float = 0.2, random_state: int = 42
@@ -78,8 +80,10 @@ def train_random_forest(
     - RandomForestClassifier: Modèle Random Forest entraîné.
     """
     # TODO: Complétez la fonction.
+    model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=random_state)
+    model.fit(X_train, y_train)
 
-    return None
+    return model
 
 def evaluate_model(
     model: RandomForestClassifier, X_test: pd.DataFrame, y_test: pd.Series
@@ -96,12 +100,12 @@ def evaluate_model(
     - tuple: Un tuple contenant la précision (float) et le rapport de classification (str).
     """
     # Complétez la fonction.
-
+    y_preds = model.predict(X_test)
     # TODO: Calculez la précision
-
+    accuracy = accuracy_score(y_test, y_preds)
     # TODO: Obtenez le rapport de classification
-
-    return None
+    report = classification_report(y_test, y_preds)
+    return (accuracy, report)
 
 def calculate_permutation_importance(
     model,
@@ -121,8 +125,7 @@ def calculate_permutation_importance(
     - eli5.PermutationImportance: Objet PermutationImportance avec les importances calculées. Nous n'utiliserons que le modèle et la valeur prédéfinie pour random_state.
     """
     # TODO: Complétez la fonction.
-
-    return None
+    return PermutationImportance(model, random_state=random_state).fit(X_val, y_val)
 
 def plot_partial_dependence(model, X_val: pd.DataFrame, feature_name: str):
     """
@@ -137,12 +140,12 @@ def plot_partial_dependence(model, X_val: pd.DataFrame, feature_name: str):
 
     # TODO: Complétez la fonction. Utilisez le nom pdp_display pour la variable utilisée pour stocker votre objet de tracé de DP.
     # Votre code ici
-
+    pdp_display = PartialDependenceDisplay.from_estimator(model, X_val, features=[feature_name], feature_names=X_val.columns)
     # Lorsque vous avez votre code prêt, décommentez le code suivant.
 
-    # pdp_display.figure_.suptitle(f"Tracé de Dépendance Partielle pour {feature_name}")
+    pdp_display.figure_.suptitle(f"Tracé de Dépendance Partielle pour {feature_name}")
 
-    # plt.grid(True)
+    plt.grid(True)
 
 def plot_mean_readmission_vs_time(X_train, y_train):
     """
@@ -155,11 +158,11 @@ def plot_mean_readmission_vs_time(X_train, y_train):
     # Complétez la fonction.
 
     # TODO: Combinez les caractéristiques et les étiquettes cibles dans un seul DataFrame
-    all_train = None
+    all_train = pd.concat([X_train, y_train], axis=1)
 
     # TODO: Calculez la moyenne de 'is_readmitted' pour chaque valeur 'time_in_hospital'
 
-    mean_readmission = None
+    mean_readmission = all_train.groupby("time_in_hospital")["is_readmitted"].mean()
 
     # Nous créerons un graphique informatif et visuellement attrayant.
 
@@ -192,13 +195,13 @@ def main_factors(model: RandomForestClassifier, sample_data: pd.Series):
     # Complétez la fonction.
 
     # TODO: Créez un objet capable de calculer les valeurs SHAP
-    explainer = None
+    explainer = shap.TreeExplainer(model)
 
     # TODO: Calculez les valeurs SHAP
-    shap_values = None
+    shap_values = explainer.shap_values(sample_data)
 
     # TODO: Initialisez la visualisation JavaScript SHAP
-
+    shap.initjs()
     # Nous créons et renvoyons un tracé de force SHAP
     return shap.plots.force(explainer.expected_value[1], shap_values[:, 1], sample_data)
 
@@ -224,17 +227,20 @@ def remove_outliers_iqr(
     df_cleaned = df.copy()
 
     # TODO: Complétez la fonction.
-
+    Q1 = df_cleaned[columns_to_process].quantile(0.25)
+    Q3 = df_cleaned[columns_to_process].quantile(0.75)
+    IQR = Q3 - Q1
     # TODO: Parcourez chaque colonne de caractéristiques spécifiée. Décommentez la boucle for et l'instruction if lorsque vous êtes prêt à tester votre code.
-    # for column in columns_to_process:
-    # if column != predictor_column and column in df.columns:
+    for column in columns_to_process:
+        if column != predictor_column and column in df.columns:
     # TODO: Effectuez les étapes nécessaires pour mettre en œuvre la méthode IQR.
-
+            lower_threshold = Q1[column] - threshold * IQR[column]
+            upper_threshold = Q3[column] + threshold * IQR[column]
     # TODO: Identifiez et supprimez les lignes avec des valeurs en dehors des limites
-
+            df_cleaned = df_cleaned[(df_cleaned[column] >= lower_threshold) & (df_cleaned[column] <= upper_threshold)]
     # TODO: Réinitialisez l'index du DataFrame nettoyé
-
-    return None
+    
+    return df_cleaned.reset_index(drop=True)
 
 def add_absolute_coordinate_changes(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -250,5 +256,7 @@ def add_absolute_coordinate_changes(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     # TODO: Calculez les changements absolus de longitude et de latitude
+    df["abs_lon_change"] = np.abs(df["pickup_longitude"] - df["dropoff_longitude"])
+    df["abs_lat_change"] = np.abs(df["pickup_latitude"] - df["dropoff_latitude"])
 
-    return None
+    return df
