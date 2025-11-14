@@ -239,7 +239,7 @@ def remove_outliers_iqr(
     # TODO: Identifiez et supprimez les lignes avec des valeurs en dehors des limites
             df_cleaned = df_cleaned[(df_cleaned[column] >= lower_threshold) & (df_cleaned[column] <= upper_threshold)]
     # TODO: Réinitialisez l'index du DataFrame nettoyé
-    
+
     return df_cleaned.reset_index(drop=True)
 
 def add_absolute_coordinate_changes(df: pd.DataFrame) -> pd.DataFrame:
