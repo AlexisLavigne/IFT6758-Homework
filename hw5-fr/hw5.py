@@ -240,6 +240,9 @@ def remove_outliers_iqr(
             df_cleaned = df_cleaned[(df_cleaned[column] >= lower_threshold) & (df_cleaned[column] <= upper_threshold)]
     # TODO: Réinitialisez l'index du DataFrame nettoyé
 
+    if "passenger_count" in df_cleaned.columns:
+        df_cleaned["passenger_count"] = df_cleaned["passenger_count"].astype(float)
+
     return df_cleaned.reset_index(drop=True)
 
 def add_absolute_coordinate_changes(df: pd.DataFrame) -> pd.DataFrame:
